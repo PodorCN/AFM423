@@ -1,32 +1,76 @@
-## Test
-
-%matplotlib inline
+# Import Library
+from asyncio.windows_events import NULL
 import matplotlib.pyplot as plt
-plt.rcParams['figure.figsize'] = (7,4.5) # Make the default figures a bit bigger
-
 import numpy as np
 import random
 
-#Let's make this notebook reproducible 
-np.random.seed(42)
-random.seed(42)
-
+from sympy import false
 import pandas_techinal_indicators as ta #https://github.com/Crypto-toolbox/pandas-technical-indicators/blob/master/technical_indicators.py
-
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-
 from sklearn.metrics import f1_score, precision_score, confusion_matrix, recall_score, accuracy_score
 from sklearn.model_selection import train_test_split
 
+# Ensure Reproducibility and Readibility
+plt.rcParams['figure.figsize'] = (7,4.5)
+np.random.seed(423)
+random.seed(423)
+
+# Read Stock Info
+# We select Apple,
 aapl = pd.read_csv('AAPL.csv')
 del(aapl['Date'])
 del(aapl['Adj Close'])
 aapl.head()
 
+
+
+
+# Data Smoothing Processor---------------------------------------------------
+# Not Done, need look into it
 def get_exp_preprocessing(df, alpha=0.9):
     edata = df.ewm(alpha=alpha).mean()    
     return edata
+# Data Smoothing Processor---------------------------------------------------
+
+
+# Indicator Calculator-------------------------------------------------------
+
+class calculator:
+    def __init__(self) -> None:
+        pass
+
+class indicatorCalculator1(calculator):
+    def __init__(self) -> None:
+        super().__init__()
+
+
+class indicatorCalculator2(calculator):
+    def __init__(self) -> None:
+        super().__init__()
+
+
+# Indicator Calculator-------------------------------------------------------
+
+# Data Storage --------------------------------------------------------------
+class stock:
+    def __init__(self, name, data) -> None:
+        self.name = name
+        self.orig = data
+        self.smoothed = NULL
+        self.indicator1 = NULL
+        self.indicator2 = NULL
+
+    def getIndicators(self):
+        self.indicator1 = indicatorCalculator1(self.smoothed)
+        self.indicator2 = indicatorCalculator2(self.smoothed)
+
+    def showIndicators(self):
+        print("Indicator1:"+self.indicator1)
+        print("Indicator2:"+self.indicator2)
+
+
+# Data Storage --------------------------------------------------------------
 
 
 saapl = get_exp_preprocessing(aapl)
