@@ -23,7 +23,19 @@ del(aapl['Date'])
 del(aapl['Adj Close'])
 aapl.head()
 
+# Get Data
 
+# 各种calculator先define上
+
+# Prepare Data
+#   Apply Data Smoothing
+#   Get All indicators
+
+# Train Model
+
+# 展示结果
+#   画图
+#   Metrics  
 
 
 # Data Smoothing Processor---------------------------------------------------
@@ -65,7 +77,7 @@ class stock:
         self.indicator1 = indicatorCalculator1(self.smoothed)
         self.indicator2 = indicatorCalculator2(self.smoothed)
 
-    def showIndicators(self):
+    def printIndicators(self):
         print("Indicator1:"+self.indicator1)
         print("Indicator2:"+self.indicator2)
 
