@@ -10,6 +10,8 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score, precision_score, confusion_matrix, recall_score, accuracy_score
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import GridSearchCV
 
 # Ensure Reproducibility and Readibility
 plt.rcParams['figure.figsize'] = (7,4.5)
@@ -128,6 +130,12 @@ def prepare_data(df, horizon):
     data['pred'] = compute_prediction_int(data, n=horizon)
     del(data['Close'])
     return data.dropna()
+
+def hyptertune(estimator, X_train, y_train, param_grid, X_test):
+    grid_search = GridSearchCV(estimator = estimator, param_grid = param_grid, njobs = -1, verbose = 2)
+    grid_search.fit(X_train, y_train)
+    pred = grid_search.predict(X_test)
+    return pred
 
 
 data = prepare_data(saapl, 10)
