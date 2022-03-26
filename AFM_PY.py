@@ -104,21 +104,18 @@ class stock:
 
     def getOBV(self):
         df = self.currentdf
-        n = self.n
+        N = len(df.index)
         i = 0
-        OBV = [0]
+        OBV = np.zeros(N)
         while i < df.index[-1]:
             if df.loc[i + 1, 'Close'] - df.loc[i, 'Close'] > 0:
-                OBV.append(df.loc[i + 1, 'Volume'])
+                OBV[i+1] = OBV[i] + df.loc[i+1, 'Volume']
             if df.loc[i + 1, 'Close'] - df.loc[i, 'Close'] == 0:
-                OBV.append(0)
+                OBV[i+1] = OBV[i]
             if df.loc[i + 1, 'Close'] - df.loc[i, 'Close'] < 0:
-                OBV.append(-df.loc[i + 1, 'Volume'])
+                OBV[i+1] = OBV[i] - df.loc[i+1, 'Volume']
             i = i + 1
-        OBV = pd.Series(OBV)
-        OBV_ma = pd.Series(OBV.rolling(n, min_periods=n).mean(), name='OBV_' + str(n))
-        df = df.join(OBV_ma)
-        return df
+        df['OBV'] = OBV
 
     def getRSI(self):
         df = self.orig["Close"]
@@ -158,45 +155,53 @@ class stock:
 
     def getSO(self):
         df = self.currentdf
-        high = df[:, 1].squeeze()
-        low = df[:, 2].squeeze()
-        close = df[:, 3].squeeze()
-        n = len(high)
-        highestHigh = []
-        lowestLow = []
-        for i in range(n - 13):
-            highestHigh.append(high[i:i + 14].max())
-            lowestLow.append(low[i:i + 14].min())
-        highestHigh = np.array(highestHigh)
-        lowestLow = np.array(lowestLow)
-        k = 100 * ((close[13:] - lowestLow) / (highestHigh - lowestLow))
+        high = df['High']
+        low = df['Low']
+        close = df['Close']
+        N = len(high)
+        highestHigh = np.zeros(N)
+        highestHigh[0:13] = np.nan
+        lowestLow = np.zeros(N)
+        lowestLow[0:13] = np.nan
+        i = 13
+        while i <= (N-1):
+            highestHigh[i] = high[i - 13:i + 1].max()
+            lowestLow[i] = low[i - 13:i + 1].min()
+            i = i + 1
 
-        return np.c_[k, close[13:]]
+        SO = np.zeros(N)
+        SO[0:13] = np.nan
+        SO[13:] = 100 * (close[13:] - lowestLow[13:]) / (highestHigh[13:] - lowestLow[13:])
+        df['SO'] = SO
     
-    def getWilliams(self):
+    def getWilliamsR(self):
         df = self.currentdf
-        high = df[:, 1].squeeze()
-        low = df[:, 2].squeeze()
-        close = df[:, 3].squeeze()
-        n = len(high)
-        highestHigh = []
-        lowestLow = []
-        for i in range(13,n):
-            highestHigh.append(high[i-13:i].max())
-            lowestLow.append(low[i-13:i].min())
-        highestHigh = np.array(highestHigh)
-        lowestLow = np.array(lowestLow)
-        w = -100 * ((highestHigh - close[13:]) / (highestHigh - lowestLow))
-        return np.c_[w, close[13:]]
+        high = df['High']
+        low = df['Low']
+        close = df['Close']
+        N = len(high)
+        highestHigh = np.zeros(N)
+        highestHigh[0:13] = np.nan
+        lowestLow = np.zeros(N)
+        lowestLow[0:13] = np.nan
+        i = 13
+        while i <= (N - 1):
+            highestHigh[i] = high[i - 13:i + 1].max()
+            lowestLow[i] = low[i - 13:i + 1].min()
+            i = i + 1
 
-    
+        WR = np.zeros(N)
+        WR[0:13] = np.nan
+        WR[13:] = -100 * (highestHigh[13:] - close[13:]) / (highestHigh[13:] - lowestLow[13:])
+        df['WilliamsR'] = WR
+
     def getMACD(self):
         df = self.currentdf
-        ma1 = ema(close.squeeze(), 12)
-        ma2 = ema(close.squeeze(), 26)
+        close = df['Close']
+        ma1 = close.ewm(span = 12, min_periods = 12)
+        ma2 = close.ewm(span = 26, min_periods = 26)
         macd = ma1[14:] - ma2
-        return np.c_[macd, close[len(close) - len(macd):]]
-        
+        df['MACD'] = macd
 
     def getPriceRateOfChange(self):
         df = self.currentdf
@@ -209,7 +214,27 @@ class stock:
         self.orig["PROC"] = PriceRateOfChange
 
 
-
+    # def getOnBalanceVolume(X):
+    #     close = X[:, 3].squeeze()
+    #     volume = X[:, 4].squeeze()[1:]
+    #     n = len(close)
+    #     x0 = close[:n - 1]
+    #     x1 = close[1:]
+    #     change = x1 - x0
+    #     OBV = []
+    #     prev_OBV = 0
+    #
+    #     for i in range(n - 1):
+    #         if change[i] > 0:
+    #             current_OBV = prev_OBV + volume[i]
+    #         elif change[i] < 0:
+    #             current_OBV = prev_OBV - volume[i]
+    #         else:
+    #             current_OBV = prev_OBV
+    #         OBV.append(current_OBV)
+    #         prev_OBV = current_OBV
+    #     OBV = np.array(OBV)
+    #     return np.c_[OBV, x1]
 # Data Storage --------------------------------------------------------------
 
 for s in setting.tickers:
