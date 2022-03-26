@@ -179,10 +179,22 @@ class indicatorCalculator2(calculator):
 class stock:
     def __init__(self, name, data) -> None:
         self.name = name
+        
         self.orig = data
+        self.currentdf = self.orig
         self.smoothed = NULL
+        self.currentStat = "Original"
         self.indicator1 = NULL
         self.indicator2 = NULL
+    
+    def switch(self):
+        if self.currentdf == "Original":
+            self.currentdf = self.smoothed
+            self.currentStat = "Smoothed"
+        else:
+            self.currentdf = self.orig
+            self.currentStat = "Original"
+
 
     def getIndicators(self):
         self.indicator1 = indicatorCalculator1(self.smoothed)
@@ -192,7 +204,128 @@ class stock:
         print("Indicator1:"+self.indicator1)
         print("Indicator2:"+self.indicator2)
 
+    def on_balance_volume(self, n):
+        df = self.currentdf
+        i = 0
+        OBV = [0]
+        while i < df.index[-1]:
+            if df.loc[i + 1, 'Close'] - df.loc[i, 'Close'] > 0:
+                OBV.append(df.loc[i + 1, 'Volume'])
+            if df.loc[i + 1, 'Close'] - df.loc[i, 'Close'] == 0:
+                OBV.append(0)
+            if df.loc[i + 1, 'Close'] - df.loc[i, 'Close'] < 0:
+                OBV.append(-df.loc[i + 1, 'Volume'])
+            i = i + 1
+        OBV = pd.Series(OBV)
+        OBV_ma = pd.Series(OBV.rolling(n, min_periods=n).mean(), name='OBV_' + str(n))
+        df = df.join(OBV_ma)
+        return df
 
+    def getRSI(self):
+        df = self.currentdf
+        df = df.squeeze()
+        n = len(df)
+        x0 = df[:n - 1]
+        x1 = df[1:]
+        change = x1 - x0
+        avgGain = []
+        avgLoss = []
+        loss = 0
+        gain = 0
+        for i in range(14):
+            if change[i] > 0:
+                gain += change[i]
+            elif change[i] < 0:
+                loss += abs(change[i])
+        averageGain = gain / 14.0
+        averageLoss = loss / 14.0
+        avgGain.append(averageGain)
+        avgLoss.append(averageLoss)
+        for i in range(14, n - 1):
+            if change[i] >= 0:
+                avgGain.append((avgGain[-1] * 13 + change[i]) / 14.0)
+                avgLoss.append((avgLoss[-1] * 13) / 14.0)
+            else:
+                avgGain.append((avgGain[-1] * 13) / 14.0)
+                avgLoss.append((avgLoss[-1] * 13 + abs(change[i])) / 14.0)
+        avgGain = np.array(avgGain)
+        avgLoss = np.array(avgLoss)
+        RS = avgGain / avgLoss
+        RSI = 100 - (100 / (1 + RS))
+        return np.c_[RSI, x1[13:]]
+    
+    def getSO(self):
+        df = self.currentdf
+        high = df[:, 1].squeeze()
+        low = df[:, 2].squeeze()
+        close = df[:, 3].squeeze()
+        n = len(high)
+        highestHigh = []
+        lowestLow = []
+        for i in range(n - 13):
+            highestHigh.append(high[i:i + 14].max())
+            lowestLow.append(low[i:i + 14].min())
+        highestHigh = np.array(highestHigh)
+        lowestLow = np.array(lowestLow)
+        k = 100 * ((close[13:] - lowestLow) / (highestHigh - lowestLow))
+
+        return np.c_[k, close[13:]]
+    
+    def getWilliams(self):
+        df = self.currentdf
+        high = df[:, 1].squeeze()
+        low = df[:, 2].squeeze()
+        close = df[:, 3].squeeze()
+        n = len(high)
+        highestHigh = []
+        lowestLow = []
+        for i in range(n - 13):
+            highestHigh.append(high[i:i + 14].max())
+            lowestLow.append(low[i:i + 14].min())
+        highestHigh = np.array(highestHigh)
+        lowestLow = np.array(lowestLow)
+        w = -100 * ((highestHigh - close[13:]) / (highestHigh - lowestLow))
+        return np.c_[w, close[13:]]
+
+    
+    def getMACD(self):
+        df = self.currentdf
+        ma1 = ema(close.squeeze(), 12)
+        ma2 = ema(close.squeeze(), 26)
+        macd = ma1[14:] - ma2
+        return np.c_[macd, close[len(close) - len(macd):]]
+        
+
+    def getPriceRateOfChange(close, n_days):
+        close = close.squeeze()
+        n = len(close)
+        x0 = close[:n - n_days]
+        x1 = close[n_days:]
+        PriceRateOfChange = (x1 - x0) / x0
+        return np.c_[PriceRateOfChange, x1]
+
+
+    def getOnBalanceVolume(X):
+        close = X[:, 3].squeeze()
+        volume = X[:, 4].squeeze()[1:]
+        n = len(close)
+        x0 = close[:n - 1]
+        x1 = close[1:]
+        change = x1 - x0
+        OBV = []
+        prev_OBV = 0
+
+        for i in range(n - 1):
+            if change[i] > 0:
+                current_OBV = prev_OBV + volume[i]
+            elif change[i] < 0:
+                current_OBV = prev_OBV - volume[i]
+            else:
+                current_OBV = prev_OBV
+            OBV.append(current_OBV)
+            prev_OBV = current_OBV
+        OBV = np.array(OBV)
+        return np.c_[OBV, x1]
 # Data Storage --------------------------------------------------------------
 
 
