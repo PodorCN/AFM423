@@ -198,8 +198,8 @@ class stock:
     def getMACD(self):
         df = self.currentdf
         close = df['Close']
-        ma1 = close.ewm(span = 12, min_periods = 12)
-        ma2 = close.ewm(span = 26, min_periods = 26)
+        ma1 = close.ewm(span = 12, min_periods = 12).mean()
+        ma2 = close.ewm(span = 26, min_periods = 26).mean()
         macd = ma1[14:] - ma2
         df['MACD'] = macd
 
