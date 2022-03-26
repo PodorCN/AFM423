@@ -200,7 +200,7 @@ class stock:
         close = df['Close']
         ma1 = close.ewm(span = 12, min_periods = 12).mean()
         ma2 = close.ewm(span = 26, min_periods = 26).mean()
-        macd = ma1[14:] - ma2
+        macd = ma1 - ma2
         df['MACD'] = macd
 
     def getPriceRateOfChange(self):
