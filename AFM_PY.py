@@ -217,45 +217,25 @@ class stock:
 
     def getAllIndicators(self):
         #self.getMACD() 报错
-        #self.getOBV() PASS
+        self.getOBV()
         self.getPriceRateOfChange()
         self.getRSI()
         self.getSO()
         self.getWilliamsR()
+        self.currentdf=self.orig
+        #self.getSmoothed()
+        #扔掉14天的
 
-    # def getOnBalanceVolume(X):
-    #     close = X[:, 3].squeeze()
-    #     volume = X[:, 4].squeeze()[1:]
-    #     n = len(close)
-    #     x0 = close[:n - 1]
-    #     x1 = close[1:]
-    #     change = x1 - x0
-    #     OBV = []
-    #     prev_OBV = 0
-    #
-    #     for i in range(n - 1):
-    #         if change[i] > 0:
-    #             current_OBV = prev_OBV + volume[i]
-    #         elif change[i] < 0:
-    #             current_OBV = prev_OBV - volume[i]
-    #         else:
-    #             current_OBV = prev_OBV
-    #         OBV.append(current_OBV)
-    #         prev_OBV = current_OBV
-    #     OBV = np.array(OBV)
-    #     return np.c_[OBV, x1]
-# Data Storage --------------------------------------------------------------
 
 for s in setting.tickers:
     currentStock = stock(s)
     for a in setting.attributeOfInterest:
         currentStock.orig[a] = multpl_stocks[a][s]
-        #currentStock.getSmoothed()
     stocksOfInterest[s] = currentStock
 
 (stocksOfInterest["AMD"]).getAllIndicators()
 print(stocksOfInterest["AMD"].orig)
-#
+s=1
 
 
 
