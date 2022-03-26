@@ -8,7 +8,7 @@ import random
 from sympy import false
 #import pandas_techinal_indicators as ta #https://github.com/Crypto-toolbox/pandas-technical-indicators/blob/master/technical_indicators.py
 import pandas as pd
-
+from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
 import pandas_datareader as web
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score, precision_score, confusion_matrix, recall_score, accuracy_score
@@ -21,27 +21,26 @@ plt.rcParams['figure.figsize'] = (7,4.5)
 np.random.seed(423)
 random.seed(423)
 
-# Read Stock Info
-# We select Apple,
-aapl = pd.read_csv('AAPL.csv')
-del(aapl['Date'])
-del(aapl['Adj Close'])
-aapl.head()
+trainTestRatio = 0.75
 
-attributeOfInterest = ["Open","High","Low","Close","Volume"]
+class Settings:
+    def __init__(self) -> None:
+        self.trainTestRatio = 0.75
+        self.tickers = ["AMD", "ATVI", "BABA", "BIDU", "BILI","CEA","GME","GOOGL","HUYA","NVDA"]
+        self.attributeOfInterest = ["Open","High","Low","Close","Volume"]
+        self.stocksOfInterest = {}
+        self.indicators = ["MACD","OBV",'PROC',"Stochastic Oscillator"]
+        self.indicatorHorizon = 14
+setting = Settings()
 
-
-
-tickers = ["AMD", "ATVI", "BABA", "BIDU", "BILI","CEA","GME","GOOGL","HUYA","NVDA"]
-multpl_stocks = web.get_data_yahoo(tickers,
+# Stocks of interest
+multpl_stocks = web.get_data_yahoo(setting.tickers,
 start = "2018-11-01",
 end = "2020-03-31")
 
 stocksOfInterest = {}
 
-
-indicators = ["MACD","OBV",'PROC',"Stochastic Oscillator"]
-stocks = ["APPL",]
+# Indicator of interest
 
 
 # Get Data
@@ -61,8 +60,6 @@ stocks = ["APPL",]
 
 
 
-
-
 # Data Smoothing Processor---------------------------------------------------
 # Not Done, need look into it
 def get_exp_preprocessing(df, alpha=0.9):
@@ -78,21 +75,25 @@ def hyptertune(estimator, X_train, y_train, param_grid, X_test):
 
 # Data Storage --------------------------------------------------------------
 class stock:
+
     def __init__(self, name) -> None:
         self.name = name
-        n = 14
+        self.IndicatorHorizon = 14
         self.orig = pd.DataFrame(columns=["Open","High","Low","Close","Volume"])
         self.currentdf = self.orig
         self.smoothed = NULL
         self.currentStat = "Original"
-        self.OBV = NULL
-        self.RSI = NULL
-        self.SO = NULL
-        self.W = NULL
-        self.MACD = NULL
-        self.PROC = NULL
+        self.day0 = NULL
 
-    
+    def getSmoothed(self):
+        self.smoothed = self.orig
+        ts = self.smoothed["Close"].squeeze()
+        print(ts)
+        fit = SimpleExpSmoothing(ts).fit()
+        
+        self.smoothed["Close"] = fit.fittedvalues.to_frame()
+        print(self.smoothed["Close"] )
+
     def switch(self):
         if self.currentdf == "Original":
             self.currentdf = self.smoothed
@@ -120,26 +121,26 @@ class stock:
         return df
 
     def getRSI(self):
-        df = self.currentdf
+        df = self.orig["Close"]
         df = df.squeeze()
         n = len(df)
-        x0 = df[:n - 1]
-        x1 = df[1:]
+        x0 = df[:n - 1].values
+        x1 = df[1:].values
         change = x1 - x0
         avgGain = []
         avgLoss = []
         loss = 0
         gain = 0
-        for i in range(14):
+        for i in range(self.IndicatorHorizon):
             if change[i] > 0:
                 gain += change[i]
             elif change[i] < 0:
                 loss += abs(change[i])
-        averageGain = gain / 14.0
-        averageLoss = loss / 14.0
+        averageGain = gain / self.IndicatorHorizon
+        averageLoss = loss / self.IndicatorHorizon
         avgGain.append(averageGain)
         avgLoss.append(averageLoss)
-        for i in range(14, n - 1):
+        for i in range(self.IndicatorHorizon, n - 1):
             if change[i] >= 0:
                 avgGain.append((avgGain[-1] * 13 + change[i]) / 14.0)
                 avgLoss.append((avgLoss[-1] * 13) / 14.0)
@@ -150,8 +151,11 @@ class stock:
         avgLoss = np.array(avgLoss)
         RS = avgGain / avgLoss
         RSI = 100 - (100 / (1 + RS))
-        return np.c_[RSI, x1[13:]]
-    
+        RSI = np.append(np.zeros(14),RSI)
+        self.orig["RSI"] = RSI
+        
+
+
     def getSO(self):
         df = self.currentdf
         high = df[:, 1].squeeze()
@@ -177,9 +181,9 @@ class stock:
         n = len(high)
         highestHigh = []
         lowestLow = []
-        for i in range(n - 13):
-            highestHigh.append(high[i:i + 14].max())
-            lowestLow.append(low[i:i + 14].min())
+        for i in range(13,n):
+            highestHigh.append(high[i-13:i].max())
+            lowestLow.append(low[i-13:i].min())
         highestHigh = np.array(highestHigh)
         lowestLow = np.array(lowestLow)
         w = -100 * ((highestHigh - close[13:]) / (highestHigh - lowestLow))
@@ -194,97 +198,30 @@ class stock:
         return np.c_[macd, close[len(close) - len(macd):]]
         
 
-    def getPriceRateOfChange(close, n_days):
+    def getPriceRateOfChange(self):
+        df = self.currentdf
+        close = df["close"]
         close = close.squeeze()
         n = len(close)
-        x0 = close[:n - n_days]
-        x1 = close[n_days:]
+        x0 = close[:n - setting.indicatorHorizon]
+        x1 = close[setting.indicatorHorizon:]
         PriceRateOfChange = (x1 - x0) / x0
-        return np.c_[PriceRateOfChange, x1]
+        self.orig["PROC"] = PriceRateOfChange
 
 
-    def getOnBalanceVolume(X):
-        close = X[:, 3].squeeze()
-        volume = X[:, 4].squeeze()[1:]
-        n = len(close)
-        x0 = close[:n - 1]
-        x1 = close[1:]
-        change = x1 - x0
-        OBV = []
-        prev_OBV = 0
 
-        for i in range(n - 1):
-            if change[i] > 0:
-                current_OBV = prev_OBV + volume[i]
-            elif change[i] < 0:
-                current_OBV = prev_OBV - volume[i]
-            else:
-                current_OBV = prev_OBV
-            OBV.append(current_OBV)
-            prev_OBV = current_OBV
-        OBV = np.array(OBV)
-        return np.c_[OBV, x1]
 # Data Storage --------------------------------------------------------------
 
-for s in tickers:
+for s in setting.tickers:
     currentStock = stock(s)
-    for a in attributeOfInterest:
+    for a in setting.attributeOfInterest:
         currentStock.orig[a] = multpl_stocks[a][s]
+        #currentStock.getSmoothed()
     stocksOfInterest[s] = currentStock
-    
-      
 
+(stocksOfInterest["AMD"]).getRSI()
 
-
-saapl = get_exp_preprocessing(aapl)
-saapl.head() #saapl stands for smoothed aapl
-
-
-#for stock in stocks:
-
-
-
-
-def feature_extraction(data):
-    for x in [5, 14, 26, 44, 66]:
-        data = ta.relative_strength_index(data, n=x)
-        data = ta.stochastic_oscillator_d(data, n=x)
-        data = ta.accumulation_distribution(data, n=x)
-        data = ta.average_true_range(data, n=x)
-        data = ta.momentum(data, n=x)
-        data = ta.money_flow_index(data, n=x)
-        data = ta.rate_of_change(data, n=x)
-        data = ta.on_balance_volume(data, n=x)
-        data = ta.commodity_channel_index(data, n=x)
-        data = ta.ease_of_movement(data, n=x)
-        data = ta.trix(data, n=x)
-        data = ta.vortex_indicator(data, n=x)
-    
-    data['ema50'] = data['Close'] / data['Close'].ewm(50).mean()
-    data['ema21'] = data['Close'] / data['Close'].ewm(21).mean()
-    data['ema14'] = data['Close'] / data['Close'].ewm(14).mean()
-    data['ema5'] = data['Close'] / data['Close'].ewm(5).mean()
-        
-    #Williams %R is missing
-    data = ta.macd(data, n_fast=12, n_slow=26)
-    
-    del(data['Open'])
-    del(data['High'])
-    del(data['Low'])
-    del(data['Volume'])
-    
-    return data
-   
-def compute_prediction_int(df, n):
-    pred = (df.shift(-n)['Close'] >= df['Close'])
-    pred = pred.iloc[:-n]
-    return pred.astype(int)
-
-def prepare_data(df, horizon):
-    data = feature_extraction(df).dropna().iloc[:-horizon]
-    data['pred'] = compute_prediction_int(data, n=horizon)
-    del(data['Close'])
-    return data.dropna()
+#
 
 
 
