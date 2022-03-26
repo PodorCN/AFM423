@@ -5,7 +5,7 @@ import numpy as np
 import random
 
 from sympy import false
-import pandas_techinal_indicators as ta #https://github.com/Crypto-toolbox/pandas-technical-indicators/blob/master/technical_indicators.py
+#import pandas_techinal_indicators as ta #https://github.com/Crypto-toolbox/pandas-technical-indicators/blob/master/technical_indicators.py
 import pandas as pd
 
 import pandas_datareader as web
@@ -27,10 +27,17 @@ del(aapl['Date'])
 del(aapl['Adj Close'])
 aapl.head()
 
+attributeOfInterest = ["Open","High","Low","Close","Volume"]
+
+
+
 tickers = ["AMD", "ATVI", "BABA", "BIDU", "BILI","CEA","GME","GOOGL","HUYA","NVDA"]
 multpl_stocks = web.get_data_yahoo(tickers,
 start = "2018-11-01",
 end = "2020-03-31")
+
+stocksOfInterest = []
+
 
 indicators = ["MACD","OBV",'PROC',"Stochastic Oscillator"]
 stocks = ["APPL",]
@@ -145,6 +152,11 @@ def relative_strength_index(df, n):
     df = df.join(RSI)
     return df
 
+
+
+
+
+
 # Data Smoothing Processor---------------------------------------------------
 # Not Done, need look into it
 def get_exp_preprocessing(df, alpha=0.9):
@@ -175,11 +187,20 @@ class indicatorCalculator2(calculator):
 
 # Indicator Calculator-------------------------------------------------------
 
+for s in tickers:
+    stock()
+    stocksOfInterest.
+
+
+for a in attributeOfInterest:
+    for 
+
+
 # Data Storage --------------------------------------------------------------
 class stock:
     def __init__(self, name, data) -> None:
         self.name = name
-        
+        n = 14
         self.orig = data
         self.currentdf = self.orig
         self.smoothed = NULL
@@ -195,17 +216,9 @@ class stock:
             self.currentdf = self.orig
             self.currentStat = "Original"
 
-
-    def getIndicators(self):
-        self.indicator1 = indicatorCalculator1(self.smoothed)
-        self.indicator2 = indicatorCalculator2(self.smoothed)
-
-    def printIndicators(self):
-        print("Indicator1:"+self.indicator1)
-        print("Indicator2:"+self.indicator2)
-
-    def on_balance_volume(self, n):
+    def on_balance_volume(self):
         df = self.currentdf
+        n = self.n
         i = 0
         OBV = [0]
         while i < df.index[-1]:
