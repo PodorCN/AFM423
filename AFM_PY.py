@@ -115,7 +115,7 @@ class stock:
             if (df['Close'].values)[i+1]- (df['Close'].values)[i] < 0:
                 OBV[i+1] = OBV[i] - (df['Volume'].values)[i+1]
             i = i + 1
-        df['OBV'] = OBV
+        self.orig['OBV'] = OBV
 
     def getRSI(self):
         df = self.orig["Close"]
@@ -172,7 +172,7 @@ class stock:
         SO = np.zeros(N)
         SO[0:13] = np.nan
         SO[13:] = 100 * (close[13:] - lowestLow[13:]) / (highestHigh[13:] - lowestLow[13:])
-        df['SO'] = SO
+        self.orig['SO'] = SO
     
     def getWilliamsR(self):
         df = self.currentdf
@@ -193,7 +193,7 @@ class stock:
         WR = np.zeros(N)
         WR[0:13] = np.nan
         WR[13:] = -100 * (highestHigh[13:] - close[13:]) / (highestHigh[13:] - lowestLow[13:])
-        df['WilliamsR'] = WR
+        self.orig['WilliamsR'] = WR
 
     def getMACD(self):
         df = self.currentdf
@@ -201,7 +201,7 @@ class stock:
         ma1 = close.ewm(span = 12, min_periods = 12).mean()
         ma2 = close.ewm(span = 26, min_periods = 26).mean()
         macd = ma1 - ma2
-        df['MACD'] = macd
+        self.orig['MACD'] = macd
 
     def getPriceRateOfChange(self):
         df = self.currentdf
@@ -210,12 +210,14 @@ class stock:
         n = len(close)
         x0 = close[:n - setting.indicatorHorizon]
         x1 = close[setting.indicatorHorizon:]
+        x0 = np.array(x0)
+        x1 = np.array(x1)
         PriceRateOfChange = (x1 - x0) / x0
         self.orig["PROC"] = PriceRateOfChange
 
     def getAllIndicators(self):
         #self.getMACD() 报错
-        self.getOBV()
+        #self.getOBV() PASS
         self.getPriceRateOfChange()
         self.getRSI()
         self.getSO()
@@ -252,7 +254,7 @@ for s in setting.tickers:
     stocksOfInterest[s] = currentStock
 
 (stocksOfInterest["AMD"]).getAllIndicators()
-
+print(stocksOfInterest["AMD"].orig)
 #
 
 
