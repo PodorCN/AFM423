@@ -104,16 +104,16 @@ class stock:
 
     def getOBV(self):
         df = self.currentdf
-        N = len(df.index)
+        N = len(df["Close"])
         i = 0
         OBV = np.zeros(N)
-        while i < df.index[-1]:
-            if df.loc[i + 1, 'Close'] - df.loc[i, 'Close'] > 0:
-                OBV[i+1] = OBV[i] + df.loc[i+1, 'Volume']
-            if df.loc[i + 1, 'Close'] - df.loc[i, 'Close'] == 0:
+        while i < (N-1):
+            if (df['Close'].values)[i+1] - (df['Close'].values)[i] > 0:
+                OBV[i+1] = OBV[i] + (df['Volume'].values)[i+1]
+            if (df['Close'].values)[i+1] - (df['Close'].values)[i] == 0:
                 OBV[i+1] = OBV[i]
-            if df.loc[i + 1, 'Close'] - df.loc[i, 'Close'] < 0:
-                OBV[i+1] = OBV[i] - df.loc[i+1, 'Volume']
+            if (df['Close'].values)[i+1]- (df['Close'].values)[i] < 0:
+                OBV[i+1] = OBV[i] - (df['Volume'].values)[i+1]
             i = i + 1
         df['OBV'] = OBV
 
@@ -200,12 +200,13 @@ class stock:
         close = df['Close']
         ma1 = close.ewm(span = 12, min_periods = 12)
         ma2 = close.ewm(span = 26, min_periods = 26)
+        print(ma1)
         macd = ma1[14:] - ma2
         df['MACD'] = macd
 
     def getPriceRateOfChange(self):
         df = self.currentdf
-        close = df["close"]
+        close = df["Close"]
         close = close.squeeze()
         n = len(close)
         x0 = close[:n - setting.indicatorHorizon]
@@ -213,6 +214,13 @@ class stock:
         PriceRateOfChange = (x1 - x0) / x0
         self.orig["PROC"] = PriceRateOfChange
 
+    def getAllIndicators(self):
+        #self.getMACD() 报错
+        self.getOBV()
+        self.getPriceRateOfChange()
+        self.getRSI()
+        self.getSO()
+        self.getWilliamsR()
 
     # def getOnBalanceVolume(X):
     #     close = X[:, 3].squeeze()
@@ -244,7 +252,7 @@ for s in setting.tickers:
         #currentStock.getSmoothed()
     stocksOfInterest[s] = currentStock
 
-(stocksOfInterest["AMD"]).getRSI()
+(stocksOfInterest["AMD"]).getAllIndicators()
 
 #
 
