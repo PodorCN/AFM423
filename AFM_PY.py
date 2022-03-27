@@ -1,6 +1,8 @@
 # Import Library
 from asyncio.windows_events import NULL
 from audioop import mul
+from xml.dom import INVALID_MODIFICATION_ERR
+from matplotlib import ticker
 import matplotlib.pyplot as plt
 import numpy as np
 import random
@@ -26,7 +28,7 @@ trainTestRatio = 0.75
 class Settings:
     def __init__(self) -> None:
         self.trainTestRatio = 0.75
-        self.tickers = ["AMD", "ATVI", "BABA", "BIDU", "BILI","CEA","GME","GOOGL","HUYA","NVDA"]
+        self.tickers = ["AMD", "AAPL", "EDU", "SHOP","TSLA","GME","GOOGL","KO","NVDA","TD"]
         self.attributeOfInterest = ["Open","High","Low","Close","Volume"]
         self.stocksOfInterest = {}
         self.indicators = ["MACD","OBV",'PROC',"Stochastic Oscillator"]
@@ -35,8 +37,8 @@ setting = Settings()
 
 # Stocks of interest
 multpl_stocks = web.get_data_yahoo(setting.tickers,
-start = "2018-11-01",
-end = "2020-03-31")
+start = "2016-01-01",
+end = "2022-02-25")
 
 stocksOfInterest = {}
 
@@ -83,7 +85,9 @@ class stock:
         self.currentdf = self.orig
         self.smoothed = NULL
         self.currentStat = "Original"
-        self.day0 = NULL
+        self.y = []
+        self.X = []
+
 
     def getSmoothed(self):
         self.smoothed = self.orig
@@ -213,10 +217,11 @@ class stock:
         x0 = np.array(x0)
         x1 = np.array(x1)
         PriceRateOfChange = (x1 - x0) / x0
+        PriceRateOfChange = np.append(np.zeros(14),PriceRateOfChange)
         self.orig["PROC"] = PriceRateOfChange
 
     def getAllIndicators(self):
-        #self.getMACD() 报错
+        self.getMACD()
         self.getOBV()
         self.getPriceRateOfChange()
         self.getRSI()
@@ -226,6 +231,22 @@ class stock:
         #self.getSmoothed()
         #扔掉14天的
 
+    def prepareData(self,predictHorizon):
+        self.orig = self.orig.iloc[24:]
+        n = len(self.orig["Open"])
+        df = self.orig.loc[:,["MACD","OBV","PROC","RSI","SO","WilliamsR"]]
+        for i in range(n-predictHorizon):
+            self.X.append(df.iloc[i])
+            if (self.orig)["Close"][i+30] >= (self.orig)["Close"][i]:
+                self.y.append(1)
+            else:
+                self.y.append(0)
+        
+
+
+
+
+
 
 for s in setting.tickers:
     currentStock = stock(s)
@@ -233,91 +254,46 @@ for s in setting.tickers:
         currentStock.orig[a] = multpl_stocks[a][s]
     stocksOfInterest[s] = currentStock
 
-(stocksOfInterest["AMD"]).getAllIndicators()
-print(stocksOfInterest["AMD"].orig)
-s=1
+for s in setting.tickers:
+    currentStock = stock(s)
+    for a in setting.attributeOfInterest:
+        currentStock.orig[a] = multpl_stocks[a][s]
+    stocksOfInterest[s] = currentStock
 
+for t in setting.tickers:
+    s = stocksOfInterest[t]
+    s.getAllIndicators()
+    s.prepareData(60)
+    n = len(s.orig["Open"])
+    print("Train Len:",n)
+    X = s.X[25:]
+    y = s.y[25:]
+    trainSize = int(np.ceil(n * 0.8))-1
+    trainSetX2 = X[:trainSize]
+    trainSetY2 = y[:trainSize]
+    testSetX = X[trainSize:]
+    testSetY = y[trainSize:]
+    trainSetX, testSetX, trainSetY, testSetY = train_test_split(trainSetX2, trainSetY2, train_size = (2*trainSize) // 3)
+    print('len X_train', len(trainSetX))
+    print('len y_train', len(trainSetY))
+    print('len X_test', len(testSetX))
+    print('len y_test', len(testSetY))
+    rf = RandomForestClassifier(n_jobs=-1, n_estimators=65, random_state=423)
+    rf.fit(trainSetX, trainSetY)
+    pred = rf.predict(testSetX)
+    precision = precision_score(y_pred=pred, y_true=testSetY)
+    recall = recall_score(y_pred=pred, y_true=testSetY)
+    f1 = f1_score(y_pred=pred, y_true=testSetY)
+    accuracy = accuracy_score(y_pred=pred, y_true=testSetY)
+    confusion = confusion_matrix(y_pred=pred, y_true=testSetY)
+    print(s.name)
+    print('precision: {0:1.2f}, recall: {1:1.2f}, f1: {2:1.2f}, accuracy: {3:1.2f}'.format(precision, recall, f1, accuracy))
+    print('Confusion Matrix')
+    print(confusion)
 
-
-
-data = prepare_data(saapl, 10)
-
-y = data['pred']
-
-#remove the output from the input
-features = [x for x in data.columns if x not in ['gain', 'pred']]
-X = data[features]
-
-train_size = 2*len(X) // 3
-
-X_train = X[:train_size]
-X_test = X[train_size:]
-y_train = y[:train_size]
-y_test = y[train_size:]
-
-
-print('len X_train', len(X_train))
-print('len y_train', len(y_train))
-print('len X_test', len(X_test))
-print('len y_test', len(y_test))
-
-
-rf = RandomForestClassifier(n_jobs=-1, n_estimators=65, random_state=42)
-rf.fit(X_train, y_train.values.ravel());
-
-
-pred = rf.predict(X_test)
-precision = precision_score(y_pred=pred, y_true=y_test)
-recall = recall_score(y_pred=pred, y_true=y_test)
-f1 = f1_score(y_pred=pred, y_true=y_test)
-accuracy = accuracy_score(y_pred=pred, y_true=y_test)
-confusion = confusion_matrix(y_pred=pred, y_true=y_test)
-print('precision: {0:1.2f}, recall: {1:1.2f}, f1: {2:1.2f}, accuracy: {3:1.2f}'.format(precision, recall, f1, accuracy))
-print('Confusion Matrix')
-print(confusion)
-
-plt.figure(figsize=(20,7))
-plt.plot(np.arange(len(pred)), pred, label='pred')
-plt.plot(np.arange(len(y_test)), y_test, label='real' );
-plt.title('Prediction versus reality in the test set')
-plt.legend();
-
-
-plt.figure(figsize=(20,7))
-proba = rf.predict_proba(X_test)[:,1]
-plt.figure(figsize=(20,7))
-plt.plot(np.arange(len(proba)), proba, label='pred_probability')
-plt.plot(np.arange(len(y_test)), y_test, label='real' );
-plt.title('Prediction probability versus reality in the test set');
-plt.legend();
-plt.show();
-
-
-rf = RandomForestClassifier(n_jobs=-1, n_estimators=65, random_state=42)
-rf.fit(X_train, y_train.values.ravel());
-
-
-pred = rf.predict(X_test)
-precision = precision_score(y_pred=pred, y_true=y_test)
-recall = recall_score(y_pred=pred, y_true=y_test)
-f1 = f1_score(y_pred=pred, y_true=y_test)
-accuracy = accuracy_score(y_pred=pred, y_true=y_test)
-confusion = confusion_matrix(y_pred=pred, y_true=y_test)
-print('precision: {0:1.2f}, recall: {1:1.2f}, f1: {2:1.2f}, accuracy: {3:1.2f}'.format(precision, recall, f1, accuracy))
-print('Confusion Matrix')
-print(confusion)
-
-plt.figure(figsize=(20,7))
-plt.plot(np.arange(len(pred)), pred, alpha=0.7, label='pred')
-plt.plot(np.arange(len(y_test)), y_test, alpha=0.7, label='real' );
-plt.title('Prediction versus reality in the test set - Using Leaked data')
-plt.legend();
-
-plt.figure(figsize=(20,7))
-proba = rf.predict_proba(X_test)[:,1]
-plt.figure(figsize=(20,7))
-plt.plot(np.arange(len(proba)), proba, alpha = 0.7, label='pred_probability')
-plt.plot(np.arange(len(y_test)), y_test, alpha = 0.7, label='real' );
-plt.title('Prediction probability versus reality in the test set - Using Leaked data');
-plt.legend();
-plt.show();
+    plt.figure(figsize=(20,7))
+    plt.plot(np.arange(len(pred)), pred, label='pred')
+    plt.plot(np.arange(len(testSetY)), testSetY, label='real' );
+    plt.title('Prediction versus reality in the test set')
+    plt.legend()
+    
