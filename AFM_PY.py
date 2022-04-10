@@ -29,15 +29,17 @@ class Settings:
     def __init__(self) -> None:
         self.trainTestRatio = 0.75
         self.tickers = ["AMD", "AAPL", "EDU", "SHOP","TSLA","GME","GOOGL","KO","NVDA","TD"]
+
         self.attributeOfInterest = ["Open","High","Low","Close","Volume"]
         self.stocksOfInterest = {}
         self.indicators = ["MACD","OBV",'PROC',"Stochastic Oscillator"]
         self.indicatorHorizon = 14
+        self.predictorHorizon  = [10,20,30,40,50,60,70,80,90,100]
 setting = Settings()
 
 # Stocks of interest
 multpl_stocks = web.get_data_yahoo(setting.tickers,
-start = "2016-01-01",
+start = "2017-01-01",
 end = "2022-02-25")
 
 stocksOfInterest = {}
@@ -59,7 +61,14 @@ stocksOfInterest = {}
 #   画图
 #   Metrics  
 
-
+# grid_search = GridSearchCV(RandomForestRegressor(random_state=0),
+#                            {
+#                               'n_estimators':np.arange(5,100,5),
+#                               'max_features':np.arange(0.1,1.0,0.05),
+                            
+#                             },cv=5, scoring="r2",verbose=1,n_jobs=-1
+#                            )
+# grid_search.fit(X_train,y_train)
 
 
 # Data Smoothing Processor---------------------------------------------------
@@ -98,13 +107,16 @@ class stock:
         self.smoothed["Close"] = fit.fittedvalues.to_frame()
         print(self.smoothed["Close"] )
 
-    def switch(self):
+    def SmoothSwitch(self):
         if self.currentdf == "Original":
             self.currentdf = self.smoothed
             self.currentStat = "Smoothed"
         else:
             self.currentdf = self.orig
             self.currentStat = "Original"
+
+    def changeTimeHorizon(self,target):
+        self.predictHorizon = target
 
     def getOBV(self):
         df = self.currentdf
@@ -231,69 +243,68 @@ class stock:
         #self.getSmoothed()
         #扔掉14天的
 
-    def prepareData(self,predictHorizon):
-        self.orig = self.orig.iloc[24:]
-        n = len(self.orig["Open"])
-        df = self.orig.loc[:,["MACD","OBV","PROC","RSI","SO","WilliamsR"]]
+    def prepareData(self,predictHorizon,smooth):
+        self.X = []
+        self.y = []
+        if (smooth):
+            data = self.smoothed.iloc[24:]
+        data = self.orig.iloc[24:]
+        n = len(data["Open"])
+        df = data.loc[:,["MACD","OBV","PROC","RSI","SO","WilliamsR"]]
         for i in range(n-predictHorizon):
             self.X.append(df.iloc[i])
-            if (self.orig)["Close"][i+30] >= (self.orig)["Close"][i]:
+            if (data)["Close"][i+predictHorizon] >= (data)["Close"][i]:
                 self.y.append(1)
             else:
                 self.y.append(0)
+
+def trainAndDisplay(predictHorizon,smooth):
+    for s in setting.tickers:
+        currentStock = stock(s)
+        for a in setting.attributeOfInterest:
+            currentStock.orig[a] = multpl_stocks[a][s]
+        stocksOfInterest[s] = currentStock
+
+    for s in setting.tickers:
+        currentStock = stock(s)
+        for a in setting.attributeOfInterest:
+            currentStock.orig[a] = multpl_stocks[a][s]
+        stocksOfInterest[s] = currentStock
+
+    for t in setting.tickers:
+        s = stocksOfInterest[t]
+        s.getAllIndicators()
+        s.prepareData(predictHorizon,smooth)
+        n = len(s.orig["Open"])
+        print("Train Len:",n)
+        X = s.X[25:]
+        y = s.y[25:]
+        trainSize = int(np.ceil(n * 0.8))-1
+        trainSetX2 = X[:trainSize]
+        trainSetY2 = y[:trainSize]
+        testSetX = X[trainSize:]
+        testSetY = y[trainSize:]
+        trainSetX, testSetX, trainSetY, testSetY = train_test_split(trainSetX2, trainSetY2, train_size = (2*trainSize) // 3)
+        print('len X_train', len(trainSetX))
+        print('len y_train', len(trainSetY))
+        print('len X_test', len(testSetX))
+        print('len y_test', len(testSetY))
+        rf = RandomForestClassifier(n_jobs=-1, n_estimators=65, random_state=423)
+        rf.fit(trainSetX, trainSetY)
+        pred = rf.predict(testSetX)
+        precision = precision_score(y_pred=pred, y_true=testSetY)
+        recall = recall_score(y_pred=pred, y_true=testSetY)
+        f1 = f1_score(y_pred=pred, y_true=testSetY)
+        accuracy = accuracy_score(y_pred=pred, y_true=testSetY)
+        confusion = confusion_matrix(y_pred=pred, y_true=testSetY)
+        print(s.name)
+        print('precision: {0:1.2f}, recall: {1:1.2f}, f1: {2:1.2f}, accuracy: {3:1.2f}'.format(precision, recall, f1, accuracy))
+        print('Confusion Matrix')
+        print(confusion)
+
+        plt.figure(figsize=(20,7))
+        plt.plot(np.arange(len(pred)), pred, label='pred')
+        plt.plot(np.arange(len(testSetY)), testSetY, label='real' )
+        plt.title('Prediction versus reality in the test set')
+        plt.legend()
         
-
-
-
-
-
-
-for s in setting.tickers:
-    currentStock = stock(s)
-    for a in setting.attributeOfInterest:
-        currentStock.orig[a] = multpl_stocks[a][s]
-    stocksOfInterest[s] = currentStock
-
-for s in setting.tickers:
-    currentStock = stock(s)
-    for a in setting.attributeOfInterest:
-        currentStock.orig[a] = multpl_stocks[a][s]
-    stocksOfInterest[s] = currentStock
-
-for t in setting.tickers:
-    s = stocksOfInterest[t]
-    s.getAllIndicators()
-    s.prepareData(60)
-    n = len(s.orig["Open"])
-    print("Train Len:",n)
-    X = s.X[25:]
-    y = s.y[25:]
-    trainSize = int(np.ceil(n * 0.8))-1
-    trainSetX2 = X[:trainSize]
-    trainSetY2 = y[:trainSize]
-    testSetX = X[trainSize:]
-    testSetY = y[trainSize:]
-    trainSetX, testSetX, trainSetY, testSetY = train_test_split(trainSetX2, trainSetY2, train_size = (2*trainSize) // 3)
-    print('len X_train', len(trainSetX))
-    print('len y_train', len(trainSetY))
-    print('len X_test', len(testSetX))
-    print('len y_test', len(testSetY))
-    rf = RandomForestClassifier(n_jobs=-1, n_estimators=65, random_state=423)
-    rf.fit(trainSetX, trainSetY)
-    pred = rf.predict(testSetX)
-    precision = precision_score(y_pred=pred, y_true=testSetY)
-    recall = recall_score(y_pred=pred, y_true=testSetY)
-    f1 = f1_score(y_pred=pred, y_true=testSetY)
-    accuracy = accuracy_score(y_pred=pred, y_true=testSetY)
-    confusion = confusion_matrix(y_pred=pred, y_true=testSetY)
-    print(s.name)
-    print('precision: {0:1.2f}, recall: {1:1.2f}, f1: {2:1.2f}, accuracy: {3:1.2f}'.format(precision, recall, f1, accuracy))
-    print('Confusion Matrix')
-    print(confusion)
-
-    plt.figure(figsize=(20,7))
-    plt.plot(np.arange(len(pred)), pred, label='pred')
-    plt.plot(np.arange(len(testSetY)), testSetY, label='real' );
-    plt.title('Prediction versus reality in the test set')
-    plt.legend()
-    
