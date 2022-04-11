@@ -295,7 +295,7 @@ def trainAndDisplay(predictHorizon,smooth):
         #rf = RandomForestClassifier(n_jobs=-1, n_estimators=65, random_state=423)
         grid_search = GridSearchCV(RandomForestClassifier(random_state=0,oob_score=True),
                            {
-                              'n_estimators':np.arange(5,100,5),
+                              'n_estimators':np.arange(100,500,50),
                               'max_features':np.arange(0.1,1.0,0.05),
                             },cv=5, scoring="accuracy",verbose=1,n_jobs=-1
                            )
