@@ -259,6 +259,8 @@ class stock:
                 self.y.append(0)
 
 def trainAndDisplay(predictHorizon,smooth):
+    returnResult = {}
+    
     for s in setting.tickers:
         currentStock = stock(s)
         for a in setting.attributeOfInterest:
@@ -276,7 +278,6 @@ def trainAndDisplay(predictHorizon,smooth):
         s.getAllIndicators()
         s.prepareData(predictHorizon,smooth)
         n = len(s.orig["Open"])
-        print("Train Len:",n)
         X = s.X[25:]
         y = s.y[25:]
         trainSize = int(np.ceil(n * 0.8))-1
@@ -285,26 +286,62 @@ def trainAndDisplay(predictHorizon,smooth):
         testSetX = X[trainSize:]
         testSetY = y[trainSize:]
         trainSetX, testSetX, trainSetY, testSetY = train_test_split(trainSetX2, trainSetY2, train_size = (2*trainSize) // 3)
-        print('len X_train', len(trainSetX))
-        print('len y_train', len(trainSetY))
-        print('len X_test', len(testSetX))
-        print('len y_test', len(testSetY))
-        rf = RandomForestClassifier(n_jobs=-1, n_estimators=65, random_state=423)
-        rf.fit(trainSetX, trainSetY)
-        pred = rf.predict(testSetX)
+        #print('len X_train', len(trainSetX))
+        #print('len y_train', len(trainSetY))
+        #print('len X_test', len(testSetX))
+        #print('len y_test', len(testSetY))
+        
+        
+        #rf = RandomForestClassifier(n_jobs=-1, n_estimators=65, random_state=423)
+        grid_search = GridSearchCV(RandomForestRegressor(random_state=0),
+                           {
+                              'n_estimators':np.arange(5,100,5),
+                              'max_features':np.arange(0.1,1.0,0.05),
+                            
+                            },cv=5, scoring="r2",verbose=1,n_jobs=-1
+                           )
+
+        
+        grid_search.fit(trainSetX, trainSetY)
+        grid_search.best_params_
+        
+        #rf.fit(trainSetX, trainSetY)
+        pred = grid_search.predict(testSetX)
         precision = precision_score(y_pred=pred, y_true=testSetY)
         recall = recall_score(y_pred=pred, y_true=testSetY)
         f1 = f1_score(y_pred=pred, y_true=testSetY)
         accuracy = accuracy_score(y_pred=pred, y_true=testSetY)
         confusion = confusion_matrix(y_pred=pred, y_true=testSetY)
-        print(s.name)
-        print('precision: {0:1.2f}, recall: {1:1.2f}, f1: {2:1.2f}, accuracy: {3:1.2f}'.format(precision, recall, f1, accuracy))
-        print('Confusion Matrix')
-        print(confusion)
+        ##print(s.name)
+        ##print('precision: {0:1.2f}, recall: {1:1.2f}, f1: {2:1.2f}, accuracy: {3:1.2f}'.format(precision, recall, f1, accuracy))
+        ##print('Confusion Matrix')
+        ##print(confusion)
 
-        plt.figure(figsize=(20,7))
-        plt.plot(np.arange(len(pred)), pred, label='pred')
-        plt.plot(np.arange(len(testSetY)), testSetY, label='real' )
-        plt.title('Prediction versus reality in the test set')
-        plt.legend()
+        #plt.figure(figsize=(20,7))
+        #plt.plot(np.arange(len(pred)), pred, label='pred')
+        #plt.plot(np.arange(len(testSetY)), testSetY, label='real' )
+        #plt.title('Prediction versus reality in the test set')
+        #plt.legend()
+        returnResult[s.name] = accuracy
         
+    return returnResult
+
+    
+plotResult = []
+for i in setting.predictorHorizon:
+    plotResult.append(trainAndDisplay(i,false))
+
+
+plotResultS = {}
+for t in setting.tickers:
+    tmp = []
+    for r in plotResult:
+        tmp.append(r[t])
+    plotResultS[t] = tmp
+
+plotResultS
+plt.figure(figsize=(20,7))
+for i in setting.tickers:
+    
+    plt.plot(setting.predictorHorizon,plotResultS[i],label = i)
+    plt.legend()
