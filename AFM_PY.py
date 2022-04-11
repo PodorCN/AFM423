@@ -29,7 +29,6 @@ class Settings:
     def __init__(self) -> None:
         self.trainTestRatio = 0.75
         self.tickers = ["AMD", "AAPL", "EDU", "SHOP","TSLA","GME","GOOGL","KO","NVDA","TD"]
-
         self.attributeOfInterest = ["Open","High","Low","Close","Volume"]
         self.stocksOfInterest = {}
         self.indicators = ["MACD","OBV",'PROC',"Stochastic Oscillator"]
@@ -86,7 +85,6 @@ def hyptertune(estimator, X_train, y_train, param_grid, X_test):
 
 # Data Storage --------------------------------------------------------------
 class stock:
-
     def __init__(self, name) -> None:
         self.name = name
         self.IndicatorHorizon = 14
@@ -97,15 +95,17 @@ class stock:
         self.y = []
         self.X = []
 
-
     def getSmoothed(self):
+        ## alpha = 0.9
+        ## 用Pandas的Smooth
         self.smoothed = self.orig
         ts = self.smoothed["Close"].squeeze()
-        print(ts)
         fit = SimpleExpSmoothing(ts).fit()
         
         self.smoothed["Close"] = fit.fittedvalues.to_frame()
-        print(self.smoothed["Close"] )
+        print(self.smoothed["Close"])
+
+    # def getNormalized(self):
 
     def SmoothSwitch(self):
         if self.currentdf == "Original":
@@ -297,10 +297,8 @@ def trainAndDisplay(predictHorizon,smooth):
                            {
                               'n_estimators':np.arange(5,100,5),
                               'max_features':np.arange(0.1,1.0,0.05),
-                            
-                            },cv=5, scoring="r2",verbose=1,n_jobs=-1
+                            },cv=5, scoring="accuracy",verbose=1,n_jobs=-1
                            )
-
         
         grid_search.fit(trainSetX, trainSetY)
         grid_search.best_params_
@@ -342,6 +340,5 @@ for t in setting.tickers:
 plotResultS
 plt.figure(figsize=(20,7))
 for i in setting.tickers:
-    
     plt.plot(setting.predictorHorizon,plotResultS[i],label = i)
     plt.legend()
