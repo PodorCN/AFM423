@@ -293,7 +293,7 @@ def trainAndDisplay(predictHorizon,smooth):
         
         
         #rf = RandomForestClassifier(n_jobs=-1, n_estimators=65, random_state=423)
-        grid_search = GridSearchCV(RandomForestRegressor(random_state=0),
+        grid_search = GridSearchCV(RandomForestClassifier(random_state=0),
                            {
                               'n_estimators':np.arange(5,100,5),
                               'max_features':np.arange(0.1,1.0,0.05),
