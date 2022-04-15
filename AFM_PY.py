@@ -28,12 +28,22 @@ trainTestRatio = 0.75
 class Settings:
     def __init__(self) -> None:
         self.trainTestRatio = 0.75
-        self.tickers = ["AMD", "AAPL", "EDU", "SHOP","TSLA","GME","GOOGL","KO","NVDA","TD"]
+        self.tickers = ["AAPL","TSLA"]
+        self.tickers2 = [ "AAPL","GOOGL", # Tech
+                        "TD","GS", # Finance
+                        "TSLA","GM", # Auto
+                        "XOM","CVX", # Energy
+                        "AMD","NVDA",  
+                        "MRNA","PFE",
+                        "MCD","KO",]
+        
+        self.theChosenOnes = ["AAPL","TSLA"]
+
         self.attributeOfInterest = ["Open","High","Low","Close","Volume"]
         self.stocksOfInterest = {}
         self.indicators = ["MACD","OBV",'PROC',"Stochastic Oscillator"]
         self.indicatorHorizon = 14
-        self.predictorHorizon  = [10,20,30,40,50,60,70,80,90,100]
+        self.predictorHorizon  = np.arange(100)+1
 setting = Settings()
 
 # Stocks of interest
@@ -42,32 +52,6 @@ start = "2017-01-01",
 end = "2022-02-25")
 
 stocksOfInterest = {}
-
-# Indicator of interest
-
-
-# Get Data
-
-# 各种calculator先define上
-
-# Prepare Data
-#   Apply Data Smoothing
-#   Get All indicators
-
-# Train Model
-
-# 展示结果
-#   画图
-#   Metrics  
-
-# grid_search = GridSearchCV(RandomForestRegressor(random_state=0),
-#                            {
-#                               'n_estimators':np.arange(5,100,5),
-#                               'max_features':np.arange(0.1,1.0,0.05),
-                            
-#                             },cv=5, scoring="r2",verbose=1,n_jobs=-1
-#                            )
-# grid_search.fit(X_train,y_train)
 
 
 # Data Smoothing Processor---------------------------------------------------
@@ -85,6 +69,7 @@ def hyptertune(estimator, X_train, y_train, param_grid, X_test):
 
 # Data Storage --------------------------------------------------------------
 class stock:
+
     def __init__(self, name) -> None:
         self.name = name
         self.IndicatorHorizon = 14
@@ -95,17 +80,15 @@ class stock:
         self.y = []
         self.X = []
 
+
     def getSmoothed(self):
-        ## alpha = 0.9
-        ## 用Pandas的Smooth
         self.smoothed = self.orig
         ts = self.smoothed["Close"].squeeze()
+        print(ts)
         fit = SimpleExpSmoothing(ts).fit()
         
         self.smoothed["Close"] = fit.fittedvalues.to_frame()
-        print(self.smoothed["Close"])
-
-    # def getNormalized(self):
+        
 
     def SmoothSwitch(self):
         if self.currentdf == "Original":
@@ -118,7 +101,7 @@ class stock:
     def changeTimeHorizon(self,target):
         self.predictHorizon = target
 
-    def getOBV(self):
+    def getOBV(self,smooth):
         df = self.currentdf
         N = len(df["Close"])
         i = 0
@@ -131,10 +114,15 @@ class stock:
             if (df['Close'].values)[i+1]- (df['Close'].values)[i] < 0:
                 OBV[i+1] = OBV[i] - (df['Volume'].values)[i+1]
             i = i + 1
-        self.orig['OBV'] = OBV
+        if (smooth == False):
+            self.orig['OBV'] = OBV
+        else:
+            self.smoothed['OBV'] = OBV
 
-    def getRSI(self):
-        df = self.orig["Close"]
+        
+
+    def getRSI(self,smooth):
+        df = self.currentdf["Close"]
         df = df.squeeze()
         n = len(df)
         x0 = df[:n - 1].values
@@ -165,11 +153,13 @@ class stock:
         RS = avgGain / avgLoss
         RSI = 100 - (100 / (1 + RS))
         RSI = np.append(np.zeros(14),RSI)
-        self.orig["RSI"] = RSI
-        
+        if (smooth == False):
+            self.orig["RSI"] = RSI
+        else:
+            self.smoothed["RSI"] = RSI   
 
 
-    def getSO(self):
+    def getSO(self,smooth):
         df = self.currentdf
         high = df['High']
         low = df['Low']
@@ -188,9 +178,14 @@ class stock:
         SO = np.zeros(N)
         SO[0:13] = np.nan
         SO[13:] = 100 * (close[13:] - lowestLow[13:]) / (highestHigh[13:] - lowestLow[13:])
-        self.orig['SO'] = SO
+      
+        if (smooth == False):
+            self.orig['SO'] = SO
+        else:
+            self.smoothed['SO'] = SO
+
     
-    def getWilliamsR(self):
+    def getWilliamsR(self,smooth):
         df = self.currentdf
         high = df['High']
         low = df['Low']
@@ -209,17 +204,24 @@ class stock:
         WR = np.zeros(N)
         WR[0:13] = np.nan
         WR[13:] = -100 * (highestHigh[13:] - close[13:]) / (highestHigh[13:] - lowestLow[13:])
-        self.orig['WilliamsR'] = WR
+        if (smooth == False):
+            self.orig['WilliamsR']= WR
+        else:
+            self.smoothed['WilliamsR'] = WR
 
-    def getMACD(self):
+    def getMACD(self,smooth):
         df = self.currentdf
         close = df['Close']
         ma1 = close.ewm(span = 12, min_periods = 12).mean()
         ma2 = close.ewm(span = 26, min_periods = 26).mean()
         macd = ma1 - ma2
-        self.orig['MACD'] = macd
+        if (smooth == False):
+            self.orig['MACD'] = macd
+        else:
+            self.smoothed['MACD']  = macd
+        
 
-    def getPriceRateOfChange(self):
+    def getPriceRateOfChange(self,smooth):
         df = self.currentdf
         close = df["Close"]
         close = close.squeeze()
@@ -230,15 +232,20 @@ class stock:
         x1 = np.array(x1)
         PriceRateOfChange = (x1 - x0) / x0
         PriceRateOfChange = np.append(np.zeros(14),PriceRateOfChange)
-        self.orig["PROC"] = PriceRateOfChange
+        
+        if (smooth == False):
+            self.orig["PROC"] = PriceRateOfChange
+        else:
+            self.smoothed["PROC"] = PriceRateOfChange
+        
 
-    def getAllIndicators(self):
-        self.getMACD()
-        self.getOBV()
-        self.getPriceRateOfChange()
-        self.getRSI()
-        self.getSO()
-        self.getWilliamsR()
+    def getAllIndicators(self,smooth):
+        self.getMACD(smooth)
+        self.getOBV(smooth)
+        self.getPriceRateOfChange(smooth)
+        self.getRSI(smooth)
+        self.getSO(smooth)
+        self.getWilliamsR(smooth)
         self.currentdf=self.orig
         #self.getSmoothed()
         #扔掉14天的
@@ -248,7 +255,8 @@ class stock:
         self.y = []
         if (smooth):
             data = self.smoothed.iloc[24:]
-        data = self.orig.iloc[24:]
+        else:
+            data = self.orig.iloc[24:]
         n = len(data["Open"])
         df = data.loc[:,["MACD","OBV","PROC","RSI","SO","WilliamsR"]]
         for i in range(n-predictHorizon):
@@ -258,26 +266,32 @@ class stock:
             else:
                 self.y.append(0)
 
-def trainAndDisplay(predictHorizon,smooth):
+def trainAndDisplay(predictHorizon,smooth,chosen):
     returnResult = {}
     
-    for s in setting.tickers:
+    if (chosen == True):
+        sticks = setting.theChosenOnes
+    else:
+        sticks = setting.tickers
+    
+    
+    for s in sticks:
         currentStock = stock(s)
         for a in setting.attributeOfInterest:
-            currentStock.orig[a] = multpl_stocks[a][s]
+            currentStock.currentdf[a] = multpl_stocks[a][s]
         stocksOfInterest[s] = currentStock
 
-    for s in setting.tickers:
+    for s in sticks:
         currentStock = stock(s)
         for a in setting.attributeOfInterest:
-            currentStock.orig[a] = multpl_stocks[a][s]
+            currentStock.currentdf[a] = multpl_stocks[a][s]
         stocksOfInterest[s] = currentStock
 
-    for t in setting.tickers:
+    for t in sticks:
         s = stocksOfInterest[t]
-        s.getAllIndicators()
+        s.getAllIndicators(smooth)
         s.prepareData(predictHorizon,smooth)
-        n = len(s.orig["Open"])
+        n = len(s.currentdf["Open"])
         X = s.X[25:]
         y = s.y[25:]
         trainSize = int(np.ceil(n * 0.8))-1
@@ -285,7 +299,7 @@ def trainAndDisplay(predictHorizon,smooth):
         trainSetY2 = y[:trainSize]
         testSetX = X[trainSize:]
         testSetY = y[trainSize:]
-        trainSetX, testSetX, trainSetY, testSetY = train_test_split(trainSetX2, trainSetY2, train_size = (2*trainSize) // 3)
+        trainSetX, testSetX, trainSetY, testSetY = train_test_split(trainSetX2, trainSetY2, train_size = (4*trainSize) // 5)
         #print('len X_train', len(trainSetX))
         #print('len y_train', len(trainSetY))
         #print('len X_test', len(testSetX))
@@ -293,7 +307,7 @@ def trainAndDisplay(predictHorizon,smooth):
         
         
         #rf = RandomForestClassifier(n_jobs=-1, n_estimators=65, random_state=423)
-        grid_search = GridSearchCV(RandomForestClassifier(random_state=0,oob_score=True),
+        grid_search = GridSearchCV(RandomForestClassifier(random_state=42,oob_score=True),
                            {
                               'n_estimators':np.arange(100,500,50),
                               'max_features':np.arange(1,6,1),
@@ -324,21 +338,40 @@ def trainAndDisplay(predictHorizon,smooth):
         
     return returnResult
 
-    
-plotResult = []
+
+trainResult = []
 for i in setting.predictorHorizon:
-    plotResult.append(trainAndDisplay(i,false))
+    trainResult.append(trainAndDisplay(i,False,False))
 
 
-plotResultS = {}
+plotResultHorizon = {}
 for t in setting.tickers:
     tmp = []
-    for r in plotResult:
+    for r in trainResult:
         tmp.append(r[t])
-    plotResultS[t] = tmp
+    plotResultHorizon[t] = tmp
 
-plotResultS
 plt.figure(figsize=(20,7))
 for i in setting.tickers:
-    plt.plot(setting.predictorHorizon,plotResultS[i],label = i)
+    plt.plot(setting.predictorHorizon,plotResultHorizon[i],label = i)
     plt.legend()
+
+
+
+for i in setting.theChosenOnes:
+    stocksOfInterest[i].getSmoothed()
+    stocksOfInterest[i].SmoothSwitch()
+    
+trainResultSmoothed = []
+for i in setting.predictorHorizon:
+    trainResultSmoothed.append(trainAndDisplay(i,False,True))
+
+
+plotResultHorizonSmoothed = {}
+for t in setting.theChosenOnes:
+    tmp = []
+    for r in trainResultSmoothed:
+        tmp.append(r[t])
+    plotResultHorizonSmoothed[t] = tmp
+
+
