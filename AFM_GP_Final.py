@@ -6,9 +6,7 @@ from matplotlib import ticker
 import matplotlib.pyplot as plt
 import numpy as np
 import random
-
 from sympy import false
-#import pandas_techinal_indicators as ta #https://github.com/Crypto-toolbox/pandas-technical-indicators/blob/master/technical_indicators.py
 import pandas as pd
 from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
 import pandas_datareader as web
@@ -17,6 +15,11 @@ from sklearn.metrics import f1_score, precision_score, confusion_matrix, recall_
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import GridSearchCV
+from datetime import timedelta
+import datetime
+import sklearn.metrics as metrics
+
+stocksOfInterest = {}
 
 # Ensure Reproducibility and Readibility
 plt.rcParams['figure.figsize'] = (7,4.5)
@@ -28,13 +31,13 @@ trainTestRatio = 0.75
 class Settings:
     def __init__(self) -> None:
         self.trainTestRatio = 0.75
-        self.tickers = ["AAPL","TSLA"]
-        self.tickers2 = [ "AAPL","GOOGL", # Tech
+        self.tickers2 = ["AAPL","TSLA","T","SHOP","TD"]
+        self.tickers = [ "AAPL","GOOGL", # Tech
                         "TD","GS", # Finance
                         "TSLA","GM", # Auto
                         "XOM","CVX", # Energy
                         "AMD","NVDA",  
-                        "MRNA","PFE",
+                        "PFE",
                         "MCD","KO",]
         
         self.theChosenOnes = ["AAPL","TSLA"]
@@ -46,28 +49,11 @@ class Settings:
         self.predictorHorizon  = np.arange(1,101,10)
 setting = Settings()
 
-# Stocks of interest
 multpl_stocks = web.get_data_yahoo(setting.tickers,
 start = "2017-01-01",
 end = "2022-02-25")
 
-stocksOfInterest = {}
 
-
-# Data Smoothing Processor---------------------------------------------------
-# Not Done, need look into it
-def get_exp_preprocessing(df, alpha=0.9):
-    edata = df.ewm(alpha=alpha).mean()    
-    return edata
-# Data Smoothing Processor---------------------------------------------------
-
-def hyptertune(estimator, X_train, y_train, param_grid, X_test):
-    grid_search = GridSearchCV(estimator = estimator, param_grid = param_grid, njobs = -1, verbose = 2)
-    grid_search.fit(X_train, y_train)
-    pred = grid_search.predict(X_test)
-    return pred
-
-# Data Storage --------------------------------------------------------------
 class stock:
 
     def __init__(self, name) -> None:
@@ -75,29 +61,24 @@ class stock:
         self.IndicatorHorizon = 14
         self.orig = pd.DataFrame(columns=["Open","High","Low","Close","Volume"])
         self.currentdf = self.orig
-        self.smoothed = NULL
+        self.smoothed = self.orig
         self.currentStat = "Original"
         self.y = []
         self.X = []
-
-    def get_exp_preprocessing(df, alpha=0.9):
-        edata = df.ewm(alpha=alpha).mean()    
-        return edata
-
-    def getSmoothed(self):
-        self.smoothed = self.orig
-        df = self.smoothed
-        edata = df.ewm(alpha=0.9).mean()  
+        self.predictModel = NULL
 
         
+    def getSmoothed(self, alpha=0.9):
+        edata = self.orig.ewm(alpha=alpha).mean()    
         self.smoothed["Close"] = edata
-        
-
-    def SmoothSwitch(self):
-        if self.currentdf == "Original":
+    
+    def toSmooth(self):
+        if self.currentStat == "Original":
             self.currentdf = self.smoothed
             self.currentStat = "Smoothed"
-        else:
+
+    def toOrig(self):
+         if self.currentStat == "Smoothed":
             self.currentdf = self.orig
             self.currentStat = "Original"
 
@@ -121,8 +102,6 @@ class stock:
             self.orig['OBV'] = OBV
         else:
             self.smoothed['OBV'] = OBV
-
-        
 
     def getRSI(self,smooth):
         df = self.currentdf["Close"]
@@ -161,7 +140,6 @@ class stock:
         else:
             self.smoothed["RSI"] = RSI   
 
-
     def getSO(self,smooth):
         df = self.currentdf
         high = df['High']
@@ -187,7 +165,6 @@ class stock:
         else:
             self.smoothed['SO'] = SO
 
-    
     def getWilliamsR(self,smooth):
         df = self.currentdf
         high = df['High']
@@ -223,7 +200,6 @@ class stock:
         else:
             self.smoothed['MACD']  = macd
         
-
     def getPriceRateOfChange(self,smooth):
         df = self.currentdf
         close = df["Close"]
@@ -241,7 +217,6 @@ class stock:
         else:
             self.smoothed["PROC"] = PriceRateOfChange
         
-
     def getAllIndicators(self,smooth):
         self.getMACD(smooth)
         self.getOBV(smooth)
@@ -250,8 +225,6 @@ class stock:
         self.getSO(smooth)
         self.getWilliamsR(smooth)
         self.currentdf=self.orig
-        #self.getSmoothed()
-        #扔掉14天的
 
     def prepareData(self,predictHorizon,smooth):
         self.X = []
@@ -269,13 +242,18 @@ class stock:
             else:
                 self.y.append(0)
 
-def trainAndDisplay(predictHorizon,smooth,chosen):
+AAPLModel = None
+
+def trainAndDisplay(predictHorizon,smooth,chosen,tune,oob=False,oob_estimators=150,ConfusionM=False,AAPL=False,ROC=False,AAPLStock = None):
     returnResult = {}
     
     if (chosen == True):
         sticks = setting.theChosenOnes
     else:
         sticks = setting.tickers
+    if AAPL:
+        sticks = [AAPLStock]
+    oobResult = {}
     
     
     for s in sticks:
@@ -303,50 +281,67 @@ def trainAndDisplay(predictHorizon,smooth,chosen):
         testSetX = X[trainSize:]
         testSetY = y[trainSize:]
         trainSetX, testSetX, trainSetY, testSetY = train_test_split(trainSetX2, trainSetY2, train_size = (4*trainSize) // 5)
-        #print('len X_train', len(trainSetX))
-        #print('len y_train', len(trainSetY))
-        #print('len X_test', len(testSetX))
-        #print('len y_test', len(testSetY))
         
+        if tune:
+            print("Using Grid_Search")
+            grid_search = GridSearchCV(RandomForestClassifier(random_state=42,oob_score=True,n_estimators=150),
+                               { 'max_features':np.arange(1,6,1),},cv=5, scoring="accuracy",verbose=1,n_jobs=-1
+                               )
+            
+        else:
+            print("RandomForestClassifier")
+            grid_search = RandomForestClassifier(n_estimators=oob_estimators, random_state=423,oob_score=True)
         
-        #rf = RandomForestClassifier(n_jobs=-1, n_estimators=65, random_state=423)
-        grid_search = GridSearchCV(RandomForestClassifier(random_state=42,oob_score=True),
-                           {
-                              'n_estimators':np.arange(100,500,50),
-                              'max_features':np.arange(1,6,1),
-                            },cv=5, scoring="accuracy",verbose=1,n_jobs=-1
-                           )
+        try:
+            grid_search.fit(trainSetX, trainSetY)
+        except:
+            print(t+" with timeHorizon "+str(predictHorizon))
+        if tune:
+            print(grid_search.best_params_)
+            stocksOfInterest[t].predictModel = grid_search   
         
-        grid_search.fit(trainSetX, trainSetY)
-        grid_search.best_params_
-        
-        #rf.fit(trainSetX, trainSetY)
         pred = grid_search.predict(testSetX)
         precision = precision_score(y_pred=pred, y_true=testSetY)
         recall = recall_score(y_pred=pred, y_true=testSetY)
         f1 = f1_score(y_pred=pred, y_true=testSetY)
         accuracy = accuracy_score(y_pred=pred, y_true=testSetY)
         confusion = confusion_matrix(y_pred=pred, y_true=testSetY)
-        ##print(s.name)
-        ##print('precision: {0:1.2f}, recall: {1:1.2f}, f1: {2:1.2f}, accuracy: {3:1.2f}'.format(precision, recall, f1, accuracy))
-        ##print('Confusion Matrix')
-        ##print(confusion)
-
-        #plt.figure(figsize=(20,7))
-        #plt.plot(np.arange(len(pred)), pred, label='pred')
-        #plt.plot(np.arange(len(testSetY)), testSetY, label='real' )
-        #plt.title('Prediction versus reality in the test set')
-        #plt.legend()
+        
         returnResult[s.name] = accuracy
         
+        if (oob):
+            oobResult[t] = grid_search.oob_score_
+        
+        if (ROC):
+            
+            probs = grid_search.predict_proba(testSetX)
+            preds = probs[:,1]
+            fpr, tpr, threshold = metrics.roc_curve(testSetY, preds)
+            roc_auc = metrics.auc(fpr, tpr)
+      
+            plt.title('Receiver Operating Characteristic')
+            plt.plot(fpr, tpr, 'b', label = 'AUC = %0.2f' % roc_auc)
+            plt.legend(loc = 'lower right')
+            plt.plot([0, 1], [0, 1],'r--')
+            plt.xlim([0, 1])
+            plt.ylim([0, 1])
+            plt.ylabel('True Positive Rate')
+            plt.xlabel('False Positive Rate')
+            plt.show()
+
+    if (oob):
+        return(oobResult)
+    if (ConfusionM):
+        return(confusion)
     return returnResult
 
 
+## Accuracy VS TimeHorizon
 trainResult = []
 for i in setting.predictorHorizon:
-    trainResult.append(trainAndDisplay(i,False,False))
-
-
+    print(i)
+    trainResult.append(trainAndDisplay(predictHorizon=i,smooth=False,chosen=False,tune=True,oob=False,oob_estimators=150,ConfusionM=False,AAPL=False,ROC=False))
+    
 plotResultHorizon = {}
 for t in setting.tickers:
     tmp = []
@@ -357,18 +352,54 @@ for t in setting.tickers:
 plt.figure(figsize=(20,7))
 for i in setting.tickers:
     plt.plot(setting.predictorHorizon,plotResultHorizon[i],label = i)
+    plt.xlabel("Time Horizon (days)")
+    plt.ylabel("Accuracy")
     plt.legend()
 
+## Tuned vs Non-Tuned
+for i in setting.theChosenOnes:
+    stocksOfInterest[i].toOrig()
+    
+trainResultNoTuned = []
+trainResultTuned = []
+for i in setting.predictorHorizon:
+    trainResultNoTuned.append(trainAndDisplay(predictHorizon=i,smooth=False,chosen=True,tune=False,oob=False,oob_estimators=150,ConfusionM=False,AAPL=False,ROC=False))
+    trainResultTuned.append(trainAndDisplay(predictHorizon=i,smooth=False,chosen=True,tune=True,oob=False,oob_estimators=150,ConfusionM=False,AAPL=False,ROC=False))
 
+plotResultHorizonNoTuned = {}
+for t in setting.theChosenOnes:
+    tmp = []
+    for r in trainResultNoTuned:
+        tmp.append(r[t])
+    plotResultHorizonNoTuned[t] = tmp
+    
+    
+plotResultHorizonTuned = {}
+for t in setting.theChosenOnes:
+    tmp = []
+    for r in trainResultTuned:
+        tmp.append(r[t])
+    plotResultHorizonTuned[t] = tmp
 
+plt.figure(figsize=(20,7))
+for i in setting.theChosenOnes:
+    plt.plot(setting.predictorHorizon,plotResultHorizonNoTuned[i],label = i)
+for i in setting.theChosenOnes:
+    plt.plot(setting.predictorHorizon,plotResultHorizonTuned[i],label = i+" Tuned")
+
+plt.xlabel("Time Horizon (days)")
+plt.ylabel("Accuracy")
+plt.legend()
+
+## Smooth vs Non-smooth
 for i in setting.theChosenOnes:
     stocksOfInterest[i].getSmoothed()
-    stocksOfInterest[i].SmoothSwitch()
+    stocksOfInterest[i].toSmooth()
+
     
 trainResultSmoothed = []
 for i in setting.predictorHorizon:
-    trainResultSmoothed.append(trainAndDisplay(i,False,True))
-
+    trainResultSmoothed.append(trainAndDisplay(predictHorizon=i,smooth=True,chosen=True,tune=False,oob=False,oob_estimators=150,ConfusionM=False,AAPL=False,ROC=False))
 
 plotResultHorizonSmoothed = {}
 for t in setting.theChosenOnes:
@@ -376,5 +407,135 @@ for t in setting.theChosenOnes:
     for r in trainResultSmoothed:
         tmp.append(r[t])
     plotResultHorizonSmoothed[t] = tmp
+    
+for i in setting.theChosenOnes:
+    stocksOfInterest[i].toOrig()
 
 
+## Simulation  
+stockInvested = "TD"
+Cash = 2000
+Cash_Day0 = Cash
+cashFlow = []
+buySellFlow = []
+StockBook = {}
+
+AAPLModel = stocksOfInterest[stockInvested].predictModel
+AAPL_Stock = multpl_stocks["Close"][stockInvested]
+AAPL_Indicator = stocksOfInterest[stockInvested].orig
+
+newTDays = []
+tradingDays = np.array(multpl_stocks["Adj Close"][stockInvested].index)
+for i in tradingDays:
+    ts = pd.Timestamp(i).strftime("%Y-%m-%d")
+    newTDays.append(ts)
+    
+AAPL_Stock_Buy_Day = np.where(np.array(newTDays) == '2021-10-01')[0][0]
+AAPL_Stock_Day0 = AAPL_Stock_Buy_Day
+print(AAPL_Stock_Buy_Day)
+BuyTDays = []
+buyAndHold = 0
+
+# Buy Phase
+for i in np.arange(30):
+    try:
+        todayIndicator = AAPL_Indicator.loc[newTDays[AAPL_Stock_Buy_Day]][["MACD","OBV","PROC","RSI","SO","WilliamsR"]]
+    except:
+        AAPL_Stock_Buy_Day += 1
+        continue
+    todayResult = AAPLModel.predict([todayIndicator])
+    timeStr = newTDays[AAPL_Stock_Buy_Day]
+    if (todayResult == 1):
+        # Long
+        if (Cash-AAPL_Stock.loc[timeStr] <= 0):
+            print("No Money, can't buy on day "+str(AAPL_Stock_Buy_Day))
+            AAPL_Stock_Buy_Day += 1
+            continue
+        StockBook[AAPL_Stock_Buy_Day] = AAPL_Stock.loc[timeStr]
+        Cash -= AAPL_Stock.loc[timeStr]
+        cashFlow.append(Cash)
+        buySellFlow.append(1)
+    else:
+        # Short
+        StockBook[AAPL_Stock_Buy_Day] = -AAPL_Stock.loc[timeStr]
+        Cash += AAPL_Stock.loc[timeStr]
+        cashFlow.append(Cash)
+        buySellFlow.append(0)
+    buysell = "Long"
+    if (todayResult == 0):
+        buysell = "Short"
+    print("On Day: "+newTDays[AAPL_Stock_Buy_Day]+" Cash Amount: "+str(Cash)+" We "+buysell)
+    BuyTDays.append(AAPL_Stock_Buy_Day)
+    AAPL_Stock_Buy_Day += 1
+    
+# Sell Phase
+AAPL_Stock_Sell_Day = AAPL_Stock_Buy_Day+30
+AAPL_Stock_Buy_Day = AAPL_Stock_Day0
+for i in np.arange(30):
+    if AAPL_Stock_Buy_Day not in BuyTDays:
+        print("No Buy on day "+ str(AAPL_Stock_Buy_Day))
+        AAPL_Stock_Sell_Day += 1
+        AAPL_Stock_Buy_Day += 1
+        continue
+    
+    todayPrice = AAPL_Stock[newTDays[AAPL_Stock_Sell_Day]]
+    
+    
+    if (StockBook[AAPL_Stock_Buy_Day]) > 0:
+        buysell = "Sell"
+        Cash += todayPrice
+        profit = todayPrice - StockBook[AAPL_Stock_Buy_Day]
+        cashFlow.append(Cash)
+    else:
+        buysell = "Buy Back"
+        Cash -= todayPrice
+        profit = -todayPrice-StockBook[AAPL_Stock_Buy_Day]
+        cashFlow.append(Cash)
+    print("On Day: "+newTDays[AAPL_Stock_Sell_Day]+ " Cash Amount: "+str(Cash)+" We "+buysell+" with profit "+str(profit))
+    AAPL_Stock_Sell_Day += 1
+    AAPL_Stock_Buy_Day += 1
+
+print("BuyAndHold: "+str((AAPL_Stock.loc[newTDays[AAPL_Stock_Day0+9]]/AAPL_Stock.loc[newTDays[AAPL_Stock_Day0]])-1))
+print("Return:"+str((Cash-Cash_Day0)/Cash_Day0) + " in 3 months "+str(4* (Cash-Cash_Day0)/Cash_Day0)+ " in 1 year!")
+
+## OOB Error Rate vs Time Horizon
+oobScoreSeries = []
+
+for i in np.arange(1,200,1):
+    print("Processing: "+str(i)+" out of 20")
+    oobScoreSeries.append(trainAndDisplay(60,smooth = False,chosen = True,tune = False,oob=True,oob_estimators=i,ConfusionM=false))
+
+oobTickers = {}
+for i in setting.theChosenOnes:
+    oobTickers[i] = []
+    
+for i in np.arange(199):
+    for t in setting.theChosenOnes:
+        oobTickers[t].append(1-oobScoreSeries[i][t])
+
+plt.figure(figsize=(20,7))     
+plt.xlabel("Number of Estimators")
+plt.ylabel("OOB Error Rate")
+
+for i in setting.theChosenOnes:
+    plt.plot(np.arange(1,200,1),oobTickers[i],label = i)
+plt.legend()  
+
+## Confusion Matrix
+def recall(CM):
+    TP = CM[0][0]
+    FP = CM[1][0]
+    FN = CM[0][1]
+    TN = CM[1][1]
+    print("Precison: "+str(TP/(TP+FP)))
+    print("Sensitivity: "+str(TP/(TP+FN)))
+    print("Specificity: "+str(TN/(TN+FP)))
+    print("Accuracy: "+str((TP+TN)/(TP+FP+TN+FN)))
+
+CM30 = trainAndDisplay(30,smooth=False,chosen=False,tune=False,oob=False,oob_estimators=200,ConfusionM=True,AAPL=True)
+CM60 = trainAndDisplay(60,smooth=False,chosen=False,tune=False,oob=False,oob_estimators=200,ConfusionM=True,AAPL=True)
+CM90 = trainAndDisplay(90,smooth=False,chosen=False,tune=False,oob=False,oob_estimators=200,ConfusionM=True,AAPL=True)
+
+recall(CM30)
+recall(CM60)
+recall(CM90)
