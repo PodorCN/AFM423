@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2022-12-12T01:35:55.949Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 Edg/108.0.1462.42" etag="PbYY_bTtxPfCwrUceCoj" version="20.3.0" type="github">
+<mxfile host="app.diagrams.net" modified="2022-12-12T02:16:50.666Z" agent="5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36 Edg/108.0.1462.42" etag="JMIBjObAFAbsGGHRxHFw" version="20.3.0" type="github">
   <diagram id="AFQejTU6IBwSeVjQHTVC" name="Page-1">
-    <mxGraphModel dx="1422" dy="786" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="1580" dy="873" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="1" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -8,39 +8,39 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="_JQTz0FYkCEJyIazcFkl-1" value="Ito Process" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="380" y="200" width="120" height="60" as="geometry" />
+          <mxGeometry x="165" y="190" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="_JQTz0FYkCEJyIazcFkl-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="_JQTz0FYkCEJyIazcFkl-2" target="_JQTz0FYkCEJyIazcFkl-1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="_JQTz0FYkCEJyIazcFkl-2" value="Stochastic Process" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="380" y="70" width="120" height="60" as="geometry" />
+          <mxGeometry x="165" y="60" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="_JQTz0FYkCEJyIazcFkl-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="_JQTz0FYkCEJyIazcFkl-4" target="_JQTz0FYkCEJyIazcFkl-6">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="_JQTz0FYkCEJyIazcFkl-4" value="Stochastic Differential Equation (SDE)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="295" y="320" width="290" height="50" as="geometry" />
+          <mxGeometry x="80" y="310" width="290" height="50" as="geometry" />
         </mxCell>
         <mxCell id="_JQTz0FYkCEJyIazcFkl-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="_JQTz0FYkCEJyIazcFkl-6" target="_JQTz0FYkCEJyIazcFkl-8">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="_JQTz0FYkCEJyIazcFkl-6" value="Geometric Brownian Motion (GBM)" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="295" y="430" width="290" height="50" as="geometry" />
+          <mxGeometry x="80" y="420" width="290" height="50" as="geometry" />
         </mxCell>
         <mxCell id="_JQTz0FYkCEJyIazcFkl-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="_JQTz0FYkCEJyIazcFkl-8" target="_JQTz0FYkCEJyIazcFkl-6">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="_JQTz0FYkCEJyIazcFkl-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=20;" edge="1" parent="1" source="_JQTz0FYkCEJyIazcFkl-8" target="_JQTz0FYkCEJyIazcFkl-15">
+        <mxCell id="_JQTz0FYkCEJyIazcFkl-24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=14;" edge="1" parent="1" source="_JQTz0FYkCEJyIazcFkl-8" target="_JQTz0FYkCEJyIazcFkl-22">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="855" y="540" />
-              <mxPoint x="1155" y="540" />
+              <mxPoint x="615" y="530" />
+              <mxPoint x="615" y="530" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="_JQTz0FYkCEJyIazcFkl-8" value="Lognormal Distributed Stock Price SDE" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="710" y="430" width="290" height="50" as="geometry" />
+        <mxCell id="_JQTz0FYkCEJyIazcFkl-8" value="Lognormal Distributed Stock Price SDE&lt;br&gt;$$dS(t) = (\alpha-\delta)S(t)dt+\sigma S(t)dW(t)$$" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="455" y="395" width="320" height="100" as="geometry" />
         </mxCell>
         <mxCell id="_JQTz0FYkCEJyIazcFkl-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="_JQTz0FYkCEJyIazcFkl-11" target="_JQTz0FYkCEJyIazcFkl-12">
           <mxGeometry relative="1" as="geometry" />
@@ -48,25 +48,57 @@
         <mxCell id="_JQTz0FYkCEJyIazcFkl-11" value="Risk-free Bond" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="1080" y="320" width="150" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="_JQTz0FYkCEJyIazcFkl-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=20;" edge="1" parent="1" source="_JQTz0FYkCEJyIazcFkl-12" target="_JQTz0FYkCEJyIazcFkl-15">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
         <mxCell id="_JQTz0FYkCEJyIazcFkl-12" value="Risk-free Bond SDE" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="1080" y="430" width="150" height="50" as="geometry" />
-        </mxCell>
-        <mxCell id="_JQTz0FYkCEJyIazcFkl-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=20;" edge="1" parent="1" source="_JQTz0FYkCEJyIazcFkl-14" target="_JQTz0FYkCEJyIazcFkl-15">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1400" y="540" />
-              <mxPoint x="1155" y="540" />
-            </Array>
-          </mxGeometry>
         </mxCell>
         <mxCell id="_JQTz0FYkCEJyIazcFkl-14" value="EU K-Strike Call Option" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="1310" y="430" width="180" height="50" as="geometry" />
         </mxCell>
         <mxCell id="_JQTz0FYkCEJyIazcFkl-15" value="&lt;font style=&quot;font-size: 20px;&quot;&gt;Black-Scholes Model&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;strokeWidth=3;" vertex="1" parent="1">
-          <mxGeometry x="1030" y="620" width="250" height="60" as="geometry" />
+          <mxGeometry x="1030" y="670" width="250" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="_JQTz0FYkCEJyIazcFkl-27" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=15;" edge="1" parent="1" source="_JQTz0FYkCEJyIazcFkl-20" target="_JQTz0FYkCEJyIazcFkl-25">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="_JQTz0FYkCEJyIazcFkl-20" value="Replicating Portfolio" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="540" y="1110" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="_JQTz0FYkCEJyIazcFkl-21" value="&lt;p style=&quot;line-height: 0.7;&quot;&gt;&lt;/p&gt;&lt;h1 style=&quot;font-size: 23px;&quot;&gt;&lt;font style=&quot;font-size: 23px;&quot;&gt;Replicating Portfolio&lt;/font&gt;&lt;/h1&gt;&lt;p style=&quot;font-size: 14px;&quot;&gt;&lt;font style=&quot;line-height: 0.6; font-size: 14px;&quot;&gt;A self-financing portfolio&amp;nbsp;&lt;span style=&quot;background-color: initial;&quot;&gt;\(V(t)\) is called a replicating portfolio of the call option price \(C(S(t),t)\) if for all t&lt;/span&gt;&lt;/font&gt;&lt;/p&gt;&lt;p style=&quot;font-size: 14px;&quot;&gt;&lt;font style=&quot;font-size: 14px;&quot;&gt;$$V(t) = C(S(t)t)$$&amp;nbsp;&lt;/font&gt;&lt;/p&gt;&lt;p style=&quot;font-size: 14px;&quot;&gt;&lt;br&gt;&lt;/p&gt;&lt;p&gt;&lt;/p&gt;" style="text;html=1;strokeColor=none;fillColor=none;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;strokeWidth=3;fontSize=20;" vertex="1" parent="1">
+          <mxGeometry x="463.75" y="1230" width="260" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="_JQTz0FYkCEJyIazcFkl-28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=15;" edge="1" parent="1" source="_JQTz0FYkCEJyIazcFkl-22" target="_JQTz0FYkCEJyIazcFkl-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="_JQTz0FYkCEJyIazcFkl-22" value="&lt;font style=&quot;font-size: 15px;&quot;&gt;$$dV(t) = x(t)[dS(t+\delta S(t)dt] + y(t)dB(t)$$&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="655" width="430" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="_JQTz0FYkCEJyIazcFkl-26" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;fontSize=15;" edge="1" parent="1" source="_JQTz0FYkCEJyIazcFkl-25" target="_JQTz0FYkCEJyIazcFkl-22">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="_JQTz0FYkCEJyIazcFkl-25" value="Portfolio Value&lt;br&gt;$$V(t) = x(t)S(t) + y(t)B(t)$$" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="483.75" y="920" width="262.5" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="_JQTz0FYkCEJyIazcFkl-30" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=14;" edge="1" parent="1" source="_JQTz0FYkCEJyIazcFkl-29" target="_JQTz0FYkCEJyIazcFkl-22">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="269" y="830" />
+              <mxPoint x="615" y="830" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_JQTz0FYkCEJyIazcFkl-29" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;$$dX(t) = \delta dt$$&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="137.5" y="920" width="262.5" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="_JQTz0FYkCEJyIazcFkl-32" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=14;" edge="1" parent="1" source="_JQTz0FYkCEJyIazcFkl-31" target="_JQTz0FYkCEJyIazcFkl-22">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="981" y="830" />
+              <mxPoint x="615" y="830" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="_JQTz0FYkCEJyIazcFkl-31" value="&lt;span style=&quot;font-size: 14px;&quot;&gt;Ito&#39;s product rule&lt;br&gt;&lt;/span&gt;" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="850" y="920" width="262.5" height="80" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
